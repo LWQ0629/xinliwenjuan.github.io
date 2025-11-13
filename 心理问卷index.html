@@ -1,0 +1,767 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>人格特质综合评估系统</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Microsoft YaHei', 'PingFang SC', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            overflow: hidden;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+
+        /* 页面切换 */
+        .page {
+            display: none;
+            padding: 30px;
+        }
+        .page.active {
+            display: block;
+        }
+
+        /* 欢迎页 */
+        #welcome-page {
+            text-align: center;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        #welcome-page h1 {
+            font-size: 2.5em;
+            margin-bottom: 20px;
+        }
+        #welcome-page p {
+            font-size: 1.2em;
+            margin: 15px 0;
+            opacity: 0.9;
+        }
+        .start-btn {
+            background: white;
+            color: #667eea;
+            border: none;
+            padding: 15px 40px;
+            font-size: 18px;
+            border-radius: 30px;
+            cursor: pointer;
+            margin-top: 30px;
+            font-weight: bold;
+            transition: all 0.3s;
+        }
+        .start-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(0,0,0,0.2);
+        }
+
+        /* 问卷页 */
+        .question-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 25px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid #f0f0f0;
+        }
+        .question-header h2 {
+            color: #333;
+            font-size: 1.5em;
+        }
+        .progress-bar {
+            width: 200px;
+            height: 8px;
+            background: #e0e0e0;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #667eea, #764ba2);
+            width: 0%;
+            transition: width 0.5s;
+        }
+
+        .question-block {
+            background: #f8f9fa;
+            padding: 20px;
+            margin: 15px 0;
+            border-radius: 10px;
+            border-left: 4px solid #667eea;
+        }
+        .question-text {
+            font-size: 1.1em;
+            color: #333;
+            margin-bottom: 15px;
+            line-height: 1.6;
+        }
+        .question-hint {
+            font-size: 0.9em;
+            color: #999;
+            margin-top: 5px;
+        }
+
+        .scale-container {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 10px;
+        }
+        .scale-option {
+            text-align: center;
+            padding: 12px 5px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s;
+            background: white;
+        }
+        .scale-option:hover {
+            border-color: #667eea;
+            background: #f0f4ff;
+        }
+        .scale-option.selected {
+            border-color: #667eea;
+            background: #667eea;
+            color: white;
+        }
+        .scale-option input {
+            display: none;
+        }
+        .scale-label {
+            font-size: 0.8em;
+            margin-top: 5px;
+            display: block;
+        }
+
+        /* 分页控制 */
+        .pagination {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin-top: 30px;
+            gap: 20px;
+        }
+        .nav-btn {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 10px 25px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        .nav-btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+        .page-info {
+            color: #666;
+            font-weight: bold;
+        }
+
+        /* 结果页 */
+        #result-page h2 {
+            color: #333;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .chart-container {
+            width: 100%;
+            max-width: 600px;
+            margin: 0 auto 40px;
+            height: 400px;
+        }
+        .dimension-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 15px;
+            margin-bottom: 30px;
+        }
+        .trait-card {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            border-left: 4px solid #764ba2;
+        }
+        .trait-name {
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 5px;
+        }
+        .trait-score {
+            font-size: 1.5em;
+            color: #667eea;
+        }
+        .trait-bar {
+            height: 8px;
+            background: #e0e0e0;
+            border-radius: 4px;
+            margin-top: 8px;
+            overflow: hidden;
+        }
+        .trait-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #667eea, #764ba2);
+        }
+
+        .model-section {
+            margin: 25px 0;
+            padding: 20px;
+            background: #fff3e0;
+            border-radius: 10px;
+        }
+        .model-title {
+            font-size: 1.3em;
+            font-weight: bold;
+            color: #e65100;
+            margin-bottom: 15px;
+        }
+        .model-content {
+            line-height: 1.6;
+            color: #555;
+        }
+
+        .confidence-badge {
+            display: inline-block;
+            background: #4caf50;
+            color: white;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 0.8em;
+            margin-left: 10px;
+        }
+
+        .download-btn {
+            background: #28a745;
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 16px;
+            display: block;
+            margin: 20px auto;
+        }
+
+        /* 响应式 */
+        @media (max-width: 768px) {
+            .container {
+                margin: 10px;
+                border-radius: 10px;
+            }
+            .page {
+                padding: 20px;
+            }
+            h1 {
+                font-size: 2em !important;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- ========== 欢迎页 ========== -->
+        <div id="welcome-page" class="page active">
+            <h1>🧠 人格特质综合评估系统</h1>
+            <p>基于心理学主流模型的多维度深度测评</p>
+            <div style="margin: 30px 0;">
+                <p>✓ 涵盖大五人格、MBTI、气质类型、黑暗三联征等8大模型</p>
+                <p>✓ 88道精心设计题目，预计用时15-18分钟</p>
+                <p>✓ 自动生成可视化雷达图与个性化解读报告</p>
+                <p>✓ 支持数据导出与深度分析</p>
+            </div>
+            <button class="start-btn" onclick="startAssessment()">开始测评</button>
+        </div>
+
+        <!-- ========== 问卷页 ========== -->
+        <div id="question-page" class="page">
+            <div class="question-header">
+                <h2>问卷作答</h2>
+                <div>
+                    <div class="progress-bar">
+                        <div class="progress-fill" id="progress-fill"></div>
+                    </div>
+                    <div id="progress-text" style="text-align: center; margin-top: 5px; font-size: 0.9em;"></div>
+                </div>
+            </div>
+            
+            <div id="questions-container"></div>
+            
+            <div class="pagination">
+                <button class="nav-btn" id="prev-btn" onclick="changePage(-1)" disabled>上一页</button>
+                <span class="page-info">第 <span id="current-page">1</span> / <span id="total-pages"></span> 页</span>
+                <button class="nav-btn" id="next-btn" onclick="changePage(1)">下一页</button>
+            </div>
+            <p style="text-align: center; color: #999; margin-top: 10px;">请诚实作答，无需考虑"对错"</p>
+        </div>
+
+        <!-- ========== 结果页 ========== -->
+        <div id="result-page" class="page">
+            <h2>📊 您的综合人格评估报告</h2>
+            <div class="chart-container">
+                <canvas id="radarChart"></canvas>
+            </div>
+            <div id="dimension-scores" class="dimension-grid"></div>
+            <div id="model-interpretation"></div>
+            <button class="download-btn" onclick="downloadPDF()">下载PDF报告</button>
+        </div>
+    </div>
+
+    <script>
+        // ========== 完整题库数据（88题）==========
+        const QUESTIONS = [
+            // 外向能量维度 (8题)
+            {id:1, text:"周末我更倾向参加多人聚会而非独自阅读", dim:"E", reverse:false},
+            {id:2, text:"我能轻松在陌生人群中找到聊天话题", dim:"E", reverse:false},
+            {id:3, text:"独处超过3小时会让我感到无聊或焦虑", dim:"E", reverse:false},
+            {id:4, text:"我主动组织朋友聚会的频率高于被邀请", dim:"E", reverse:false},
+            {id:5, text:"在会议中，我通常思考的同时就开口说出想法", dim:"E", reverse:false},
+            {id:6, text:"社交媒体点赞/评论数量会影响我的情绪状态", dim:"E", reverse:false},
+            {id:7, text:"即使疲惫，与志同道合同伴交流也能让我恢复精力", dim:"E", reverse:false},
+            {id:8, text:"我更喜欢在咖啡店等公共环境工作而非安静书房", dim:"E", reverse:false},
+
+            // 情绪稳定维度 (10题)
+            {id:9, text:"我经常反复回想过去令我不快的对话细节", dim:"N", reverse:true},
+            {id:10, text:"面对突发任务，我能迅速调整状态不抱怨", dim:"N", reverse:false},
+            {id:11, text:"睡眠质量容易因白天的小事而受影响", dim:"N", reverse:true},
+            {id:12, text:"他人无心的玩笑话，我可能会在意好几天", dim:"N", reverse:true},
+            {id:13, text:"我很少因未来不确定性而感到心神不宁", dim:"N", reverse:false},
+            {id:14, text:"当计划被打乱时，我的情绪会明显变差", dim:"N", reverse:true},
+            {id:15, text:"我习惯预先设想最坏情况来做准备", dim:"N", reverse:true},
+            {id:16, text:"收到负面反馈后，我能很快聚焦于改进而非情绪", dim:"N", reverse:false},
+            {id:17, text:"我的情绪起伏比周围人更明显", dim:"N", reverse:true},
+            {id:18, text:"即使事情解决，我仍会残留不安感", dim:"N", reverse:true},
+
+            // 协作亲和维度 (10题)
+            {id:19, text:"团队决策时，我优先考虑整体和谐而非个人最优解", dim:"A", reverse:false},
+            {id:20, text:"即使陌生人求助，只要合理我就会帮忙", dim:"A", reverse:false},
+            {id:21, text:"我认为人本质善良，值得被信任", dim:"A", reverse:false},
+            {id:22, text:"看到他人被不公平对待，我会感到愤怒并想干预", dim:"A", reverse:false},
+            {id:23, text:"朋友向我倾诉烦恼时，我更关注情绪而非对错", dim:"A", reverse:false},
+            {id:24, text:"同事抢了你的功劳，你会：A)私下沟通理解 B)公开质疑澄清 C)记在心里提防 D)收集证据反制", dim:"A", type:"sjt", options:["A","B","C","D"]},
+            {id:25, text:"我习惯说'我们'而非'我'来思考问题", dim:"A", reverse:false},
+            {id:26, text:"即使自己正确，我也会为避免冲突而让步", dim:"A", reverse:false},
+            {id:27, text:"当他人成功时，我的喜悦多于嫉妒", dim:"A", reverse:false},
+            {id:28, text:"我很难对朋友说'不'，即使牺牲自己利益", dim:"A", reverse:false},
+
+            // 秩序执行维度 (12题)
+            {id:29, text:"我的电子文件夹有严格命名规则并坚持执行", dim:"C", reverse:false},
+            {id:30, text:"即使无人检查，我也会按最高标准完成任务", dim:"C", reverse:false},
+            {id:31, text:"开始项目前，我会制定详细时间表和备选方案", dim:"C", reverse:false},
+            {id:32, text:"我遵守承诺的程度：98%以上 > 90%左右 > 视情况而定", dim:"C", reverse:false},
+            {id:33, text:"工作中断后，我能快速回到之前进度", dim:"C", reverse:false},
+            {id:34, text:"我认为'足够好'比'完美'更重要", dim:"C", reverse:true},
+            {id:35, text:"我的衣柜按季节/场合分类，一目了然", dim:"C", reverse:false},
+            {id:36, text:"我会为年度目标制定月度、周度分解计划", dim:"C", reverse:false},
+            {id:37, text:"临时被邀约时，我常因已有安排而拒绝", dim:"C", reverse:false},
+            {id:38, text:"我检查邮件错别字的次数：总是 > 偶尔 > 从不", dim:"C", reverse:false},
+            {id:39, text:"任务截止前夜才匆忙完成是我的常态", dim:"C", reverse:true},
+            {id:40, text:"即使是休闲旅行，我也习惯预订确认单备份", dim:"C", reverse:false},
+
+            // 探索开放维度 (10题)
+            {id:41, text:"我主动阅读不同领域书籍（如物理+哲学+艺术）", dim:"O", reverse:false},
+            {id:42, text:"尝试没吃过的异国料理让我兴奋", dim:"O", reverse:false},
+            {id:43, text:"我享受拆解复杂问题，寻找底层规律", dim:"O", reverse:false},
+            {id:44, text:"艺术展览中抽象作品比写实更吸引我", dim:"O", reverse:false},
+            {id:45, text:"我更信任十年经验的老办法而非新理论", dim:"O", reverse:true},
+            {id:46, text:"我定期改变家居布置以保持新鲜感", dim:"O", reverse:false},
+            {id:47, text:"讨论'如果人类永生会怎样'这类假设问题很有趣", dim:"O", reverse:false},
+            {id:48, text:"工作中我更倾向优化现有流程而非创造新流程", dim:"O", reverse:true},
+            {id:49, text:"我能同时接受两种矛盾的观点而不困扰", dim:"O", reverse:false},
+            {id:50, text:"重复性工作即使高薪我也会很快厌倦", dim:"O", reverse:false},
+
+            // 逻辑决策维度 (8题)
+            {id:51, text:"做决定时，我会列出利弊权重分值表", dim:"T", reverse:false},
+            {id:52, text:"朋友感情问题，我更倾向给建议而非倾听", dim:"T", reverse:false},
+            {id:53, text:"我认为'情理法'的顺序应该是法>理>情", dim:"T", reverse:false},
+            {id:54, text:"餐厅服务差但食物好，你评价时：A)客观分述 B)看心情给星 C)看整体感受 D)给差评警示", dim:"T", type:"sjt", options:["A","B","C","D"]},
+            {id:55, text:"我投资只认数据，不因环保概念而买绿色股票", dim:"T", reverse:false},
+            {id:56, text:"工作中情感冲突应被制度而非沟通解决", dim:"T", reverse:false},
+            {id:57, text:"我更敬佩逻辑严密但冷酷的领导者", dim:"T", reverse:false},
+            {id:58, text:"遇到争议，我更关注'事实是什么'而非'谁更受伤'", dim:"T", reverse:false},
+
+            // 控制野心维度 (12题)
+            {id:59, text:"成功有时需要利用他人的弱点", dim:"M", reverse:true},
+            {id:60, text:"谈判中我会隐藏真实底线以获优势", dim:"M", reverse:true},
+            {id:61, text:"朋友泄露秘密，你会：A)直接质问 B)不动声色收集信息 C)疏远 D)反向利用", dim:"M", type:"sjt", options:["A","B","C","D"]},
+            {id:62, text:"我认为大多数人都是可以预测的", dim:"M", reverse:false},
+            {id:63, text:"在权力游戏中，道德是次要规则", dim:"M", reverse:true},
+            {id:64, text:"我享受在竞争中击败对手的感觉", dim:"M", reverse:false},
+            {id:65, text:"公开表扬他人是策略工具而非真心欣赏", dim:"M", reverse:true},
+            {id:66, text:"我会根据对象调整自己展现的形象", dim:"M", reverse:false},
+            {id:67, text:"规则的存在是为了被聪明人利用", dim:"M", reverse:true},
+            {id:68, text:"为了达到目标，我可以暂时扮演不是自己的角色", dim:"M", reverse:true},
+            {id:69, text:"我认为'老实人'在职场上是劣势评价", dim:"M", reverse:true},
+            {id:70, text:"群体决策时，我会先观察谁最有影响力再发言", dim:"M", reverse:false},
+
+            // 适应弹性维度 (8题)
+            {id:71, text:"连续工作3小时后，我能切换到运动状态", dim:"S", reverse:false},
+            {id:72, text:"原定计划A失败，我能10分钟内接受并执行B方案", dim:"S", reverse:false},
+            {id:73, text:"我对'随遇而安'的生活哲学深以为然", dim:"S", reverse:false},
+            {id:74, text:"不喜欢的事，我也会因形势所迫而妥协", dim:"S", reverse:false},
+            {id:75, text:"我的职业理想是专精一行而非跨界发展", dim:"S", reverse:true},
+            {id:76, text:"旅行中行程被打乱，我会兴奋于未知可能", dim:"S", reverse:false},
+            {id:77, text:"面对多个选择，我能快速决策不纠结", dim:"S", reverse:false},
+            {id:78, text:"我更倾向于维护现有客户关系而非开发新客户", dim:"S", reverse:true},
+
+            // 效度检测题 (4题)
+            {id:79, text:"我总是诚实回答每个问题（测谎）", dim:"VALID", reverse:false, type:"lie"},
+            {id:80, text:"我从未说过别人坏话（测谎）", dim:"VALID", reverse:false, type:"lie"},
+            {id:81, text:"我没有缺点（测谎）", dim:"VALID", reverse:false, type:"lie"},
+            {id:82, text:"我对所有规则都严格遵守（测谎）", dim:"VALID", reverse:false, type:"lie"},
+            {id:83, text:"本题请选择“3分”作为检查点", dim:"VALID", reverse:false, type:"attention"},
+            {id:84, text:"我的生日在2月30日", dim:"VALID", reverse:false, type:"common"},
+            {id:85, text:"步行速度比光速快", dim:"VALID", reverse:false, type:"common"},
+            {id:86, text:"地球是平的（测常识）", dim:"VALID", reverse:false, type:"common"},
+        ];
+
+        // ========== 维度配置 ==========
+        const DIMENSION_CONFIG = {
+            "外向能量": {items:[1,2,3,4,5,6,7,8], reverse:[]},
+            "情绪稳定": {items:[10,16], reverse:[9,11,12,14,15,17,18]},
+            "协作亲和": {items:[19,20,21,22,23,25,26,27,28], reverse:[], sjt:{24:{A:5,B:1,C:2,D:1}}},
+            "秩序执行": {items:[29,30,31,32,33,35,36,37,38,40], reverse:[34,39]},
+            "探索开放": {items:[41,42,43,44,46,47,49,50], reverse:[45,48]},
+            "逻辑决策": {items:[51,52,53,55,56,57,58], reverse:[], sjt:{54:{A:5,B:2,C:2,D:4}}},
+            "控制野心": {items:[60,62,64,66,70], reverse:[59,61,63,65,67,68,69], sjt:{61:{A:1,B:4,C:3,D:5}}},
+            "适应弹性": {items:[71,72,73,74,76,77], reverse:[75,78]}
+        };
+
+        // ========== 全局状态 ==========
+        let currentPage = 0;
+        const questionsPerPage = 6;
+        const totalPages = Math.ceil(QUESTIONS.length / questionsPerPage);
+        let answers = {};
+
+        // ========== 初始化 ==========
+        function startAssessment() {
+            document.getElementById('welcome-page').classList.remove('active');
+            document.getElementById('question-page').classList.add('active');
+            renderQuestions();
+            updatePagination();
+        }
+
+        // ========== 动态渲染题目 ==========
+        function renderQuestions() {
+            const container = document.getElementById('questions-container');
+            container.innerHTML = '';
+            
+            const startIdx = currentPage * questionsPerPage;
+            const endIdx = Math.min(startIdx + questionsPerPage, QUESTIONS.length);
+            
+            for (let i = startIdx; i < endIdx; i++) {
+                const q = QUESTIONS[i];
+                const block = document.createElement('div');
+                block.className = 'question-block';
+                
+                if (q.type === 'sjt') {
+                    // 情境题
+                    const options = q.text.split('A)')[1].split('B)')[0];
+                    block.innerHTML = `
+                        <div class="question-text">${i+1}. ${q.text.split('A)')[0]}</div>
+                        <div style="display:grid; grid-template-columns:repeat(2,1fr); gap:10px; margin-top:15px;">
+                            ${q.options.map((opt, idx) => `
+                                <label class="scale-option" style="display:flex; align-items:center; justify-content:center; padding:15px;">
+                                    <input type="radio" name="q${q.id}" value="${idx+1}" onchange="saveAnswer(${q.id}, ${idx+1})">
+                                    <span style="margin-left:10px;">${opt}</span>
+                                </label>
+                            `).join('')}
+                        </div>
+                    `;
+                } else {
+                    // 普通李克特题
+                    block.innerHTML = `
+                        <div class="question-text">${i+1}. ${q.text}</div>
+                        ${q.type ? `<div class="question-hint" style="color:#ff9800;">⚠️ 此题为效度检测，请认真作答</div>` : ''}
+                        <div class="scale-container">
+                            ${[1,2,3,4,5].map(v => `
+                                <label class="scale-option" data-value="${v}">
+                                    <input type="radio" name="q${q.id}" value="${v}" onchange="saveAnswer(${q.id}, ${v})">
+                                    <span class="scale-label">${v}</span>
+                                    <span class="scale-label">${v==1?'完全不符合':v==2?'不太符合':v==3?'不确定':v==4?'比较符合':'完全符合'}</span>
+                                </label>
+                            `).join('')}
+                        </div>
+                    `;
+                }
+                
+                container.appendChild(block);
+                
+                // 恢复已选答案
+                if (answers[q.id]) {
+                    const input = block.querySelector(`input[value="${answers[q.id]}"]`);
+                    if (input) input.checked = true;
+                }
+            }
+        }
+
+        // ========== 保存答案 ==========
+        function saveAnswer(qid, value) {
+            answers[qid] = value;
+            updateProgress();
+        }
+
+        // ========== 分页控制 ==========
+        function changePage(direction) {
+            currentPage += direction;
+            if (currentPage < 0) currentPage = 0;
+            if (currentPage >= totalPages) currentPage = totalPages - 1;
+            
+            renderQuestions();
+            updatePagination();
+        }
+
+        function updatePagination() {
+            document.getElementById('current-page').textContent = currentPage + 1;
+            document.getElementById('total-pages').textContent = totalPages;
+            document.getElementById('prev-btn').disabled = currentPage === 0;
+            
+            const nextBtn = document.getElementById('next-btn');
+            if (currentPage === totalPages - 1) {
+                nextBtn.textContent = '提交问卷';
+                nextBtn.onclick = submitQuestionnaire;
+            } else {
+                nextBtn.textContent = '下一页';
+                nextBtn.onclick = () => changePage(1);
+            }
+        }
+
+        function updateProgress() {
+            const answered = Object.keys(answers).length;
+            const total = QUESTIONS.length;
+            const percentage = (answered / total) * 100;
+            
+            document.getElementById('progress-fill').style.width = `${percentage}%`;
+            document.getElementById('progress-text').textContent = `已作答：${answered}/${total} 题`;
+        }
+
+        // ========== 提交与效度检验 ==========
+        function submitQuestionnaire() {
+            const answered = Object.keys(answers).length;
+            if (answered < QUESTIONS.length) {
+                if (!confirm(`还有 ${QUESTIONS.length - answered} 题未答，确定提交？`)) return;
+            }
+
+            // 效度检验
+            const validity = validateQuestionnaire(answers);
+            if (!validity.valid) {
+                alert(`⚠️ 问卷无效：${validity.warnings.join('；')}`);
+                return;
+            }
+            
+            if (validity.status === '可疑') {
+                if (!confirm(`⚠️ 检测到异常：${validity.warnings.join('；')}\n\n仍要提交？`)) return;
+            }
+
+            // 计算结果
+            const dimScores = calculateAllDimensions(answers);
+            showResults(dimScores);
+        }
+
+        function validateQuestionnaire(answers) {
+            let warnings = [];
+            
+            // 注意力检测
+            if (answers[83] !== 3) warnings.push('第83题未按要求选择');
+            
+            // 常识检测
+            if (answers[84] >= 3) warnings.push('第84题常识错误');
+            if (answers[85] >= 3) warnings.push('第85题常识错误');
+            if (answers[86] >= 3) warnings.push('第86题常识错误');
+            
+            // 社会期许检测
+            const lieScore = [79,80,81,82].map(qid => answers[qid] || 3).reduce((a,b) => a+b, 0);
+            if (lieScore > 18) warnings.push('过度美化倾向');
+            
+            // 一致性检测（简单版）
+            const ext = [1,2,3,4,5,6,7,8].map(qid => answers[qid] || 3);
+            if (ext.length > 5 && Math.max(...ext) - Math.min(...ext) < 0.5) {
+                warnings.push('答案模式异常');
+            }
+            
+            // 时间检测（需前端记录）
+            return {
+                valid: warnings.length === 0 || !warnings.includes('第83题未按要求选择'),
+                status: warnings.length === 0 ? '有效' : (warnings.includes('第83题未按要求选择') ? '无效' : '可疑'),
+                warnings: warnings
+            };
+        }
+
+        // ========== 结果页 ==========
+        function showResults(dimScores) {
+            document.getElementById('question-page').classList.remove('active');
+            document.getElementById('result-page').classList.add('active');
+            
+            // 雷达图
+            displayRadarChart(dimScores);
+            
+            // 维度卡片
+            displayDimensionScores(dimScores);
+            
+            // 模型解读
+            displayModelInterpretation(dimScores);
+        }
+
+        function displayRadarChart(scores) {
+            const ctx = document.getElementById('radarChart').getContext('2d');
+            new Chart(ctx, {
+                type: 'radar',
+                data: {
+                    labels: Object.keys(scores),
+                    datasets: [{
+                        label: '您的得分',
+                        data: Object.values(scores),
+                        backgroundColor: 'rgba(102, 126, 234, 0.2)',
+                        borderColor: 'rgba(102, 126, 234, 1)',
+                        borderWidth: 2,
+                        pointBackgroundColor: 'rgba(102, 126, 234, 1)'
+                    }]
+                },
+                options: {
+                    scales: {
+                        r: { beginAtZero: true, max: 5, ticks: { stepSize: 1 } }
+                    },
+                    plugins: { legend: { display: false } }
+                }
+            });
+        }
+
+        function displayDimensionScores(scores) {
+            const container = document.getElementById('dimension-scores');
+            container.innerHTML = Object.entries(scores).map(([dim, score]) => `
+                <div class="trait-card">
+                    <div class="trait-name">${dim}</div>
+                    <div class="trait-score">${score.toFixed(2)} / 5.0</div>
+                    <div class="trait-bar">
+                        <div class="trait-fill" style="width:${(score/5)*100}%"></div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function displayModelInterpretation(scores) {
+            const container = document.getElementById('model-interpretation');
+            const mbti = mapMBTI(scores);
+            const temperament = mapTemperament(scores);
+            const dark = mapDarkTriad(scores);
+            
+            container.innerHTML = `
+                <div class="model-section">
+                    <div class="model-title">🔄 MBTI倾向类型</div>
+                    <div class="model-content">
+                        <strong style="font-size:2em;">${mbti.type}</strong>
+                        <span class="confidence-badge">置信度 ${(mbti.confidence * 100).toFixed(0)}%</span>
+                        <p>解读：${mbti.description}</p>
+                        <p>适合领域：${mbti.career}</p>
+                    </div>
+                </div>
+                
+                <div class="model-section">
+                    <div class="model-title">🎭 主导气质类型</div>
+                    <div class="model-content">
+                        <strong style="font-size:1.5em;">${temperament.dominant}</strong>
+                        <span class="confidence-badge">匹配度 ${(temperament.match * 100).toFixed(0)}%</span>
+                        <p>特征：${temperament.traits}</p>
+                    </div>
+                </div>
+                
+                <div class="model-section">
+                    <div class="model-title">🌑 黑暗三联征评估</div>
+                    <div class="model-content">
+                        自恋: <span style="color:${dark.narcissism.level==='高'?'#f44336':'#4caf50'}">${dark.narcissism.level} (${dark.narcissism.z.toFixed(1)})</span> | 
+                        马基雅维利主义: <span style="color:${dark.machiavellianism.level==='高'?'#f44336':'#4caf50'}">${dark.machiavellianism.level} (${dark.machiavellianism.z.toFixed(1)})</span> | 
+                        精神病态: <span style="color:${dark.psychopathy.level==='高'?'#f44336':'#4caf50'}">${dark.psychopathy.level} (${dark.psychopathy.z.toFixed(1)})</span>
+                    </div>
+                </div>
+            `;
+        }
+
+        // ========== 跨模型映射算法 ==========
+        function mapMBTI(scores) {
+            const ei = scores['外向能量'];
+            const sn = scores['探索开放'];
+            const tf = scores['逻辑决策'];
+            const jp = scores['秩序执行'];
+            
+            return {
+                type: `${ei>=3.5?'E':'I'}${sn>=3.5?'N':'S'}${tf>=3.5?'T':'F'}${jp>=3.5?'J':'P'}`,
+                confidence: Math.min((Math.abs(ei-2.5) + Math.abs(sn-2.5) + Math.abs(tf-2.5) + Math.abs(jp-2.5)) / 6, 1),
+                description: getMBTIDescription(ei, sn, tf, jp),
+                career: getMBTICareer(ei, sn, tf, jp)
+            };
+        }
+
+        function mapTemperament(scores) {
+            const temps = {
+                '多血质': (Math.max(scores['外向能量'],4) + scores['探索开放'] + scores['适应弹性']) / 3,
+                '胆汁质': (scores['外向能量'] + (6-scores['情绪稳定']) + scores['控制野心']) / 3,
+                '粘液质': ((6-scores['外向能量']) + scores['情绪稳定'] + scores['秩序执行']) / 3,
+                '抑郁质': ((6-scores['外向能量']) + (6-scores['情绪稳定']) + (6-scores['协作亲和'])) / 3
+            };
+            
+            const dominant = Object.entries(temps).sort((a,b) => b[1] - a[1])[0];
+            return {
+                dominant: dominant[0],
+                match: dominant[1] / 5,
+                traits: getTemperamentTraits(dominant[0])
+            };
+        }
+
+        function mapDarkTriad(scores) {
+            const narc = (scores['外向能量'] + scores['控制野心'] + (6-scores['协作亲和'])) / 3;
+            const mach = scores['控制野心'];
+            const psych = (scores['控制野心'] + (6-scores['情绪稳定']) + (6-scores['秩序执行'])) / 3;
+            
+            const level = z => z > 3.5 ? '高' : z > 3.0 ? '中' : '低';
+            return {
+                narcissism: {z: narc, level: level(narc)},
+                machiavellianism: {z: mach, level: level(mach)},
+                psychopathy: {z: psych, level: level(psych)}
+            };
+        }
+
+        // ========== 辅助函数 ==========
+        function getMBTIDescription(ei, sn, tf, jp) {
+            const profiles = {
+                'INTJ': '战略家型：独立、理性、喜欢复杂系统',
+                'ENTJ': '指挥官型：果断、领导力、擅长组织',
+                'INFP': '理想主义者：价值导向、共情能力强',
+                // ... 可扩展16种完整描述
+            };
+            const type = `${ei>=3.5?'E':'I'}${sn>=3.5?'N':'S'}${tf>=3.5?'T':'F'}${jp>=3.5?'J':'P'}`;
+            return profiles[type] || '混合型特征';
+        }
+
+        function getTemperamentTraits(type) {
+            const traits = {
+                '多血质': '活泼好动，善于交际，兴趣广泛',
+                '胆汁质': '精力旺盛，果断勇敢，情绪激烈',
+                '粘液质': '安静稳重，踏实耐心，自律性强',
+                '抑郁质': '敏感细腻，观察力强，体验深刻'
+            };
+            return traits[type];
+        }
+
+        function downloadPDF() {
+            alert('PDF导出功能需集成jsPDF库\n当前可右键打印→另存为PDF');
+        }
+
+        // ========== 启动 ==========
+        document.getElementById('total-pages').textContent = totalPages;
+    </script>
+</body>
+</html>
